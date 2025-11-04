@@ -15,4 +15,4 @@ RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
 # 容器启动时执行的命令（请根据你的主程序名称修改）
-CMD ["python", "main.py"]
+CMD ["python", "app.py"]
