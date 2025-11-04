@@ -7,6 +7,9 @@ WORKDIR /app
 # 复制所有项目文件到容器里
 COPY . /app
 
+# 开放容器的 5000 端口
+EXPOSE 5000
+
 # 升级 pip 并安装依赖（假设 requirements.txt 存在）
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
