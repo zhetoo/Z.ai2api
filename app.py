@@ -123,7 +123,7 @@ class utils:
 			log.debug("  headers: %s", json.dumps(headers))
 			log.debug("  data: %s", json.dumps(data))
 
-			url = f"{cfg.source.protocol}//{cfg.source.host}/api/chat/completions"
+			url = f"{cfg.source.protocol}//{cfg.source.host}/api/v2/chat/completions"
 			if params:
 				query_string = urllib.parse.urlencode(params)
 				url = f"{url}?{query_string}"
@@ -1225,3 +1225,4 @@ if __name__ == "__main__":
 		from gevent import pywsgi
 
 		pywsgi.WSGIServer(('0.0.0.0', cfg.api.port), app).serve_forever()
+
