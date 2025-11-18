@@ -131,6 +131,73 @@ class utils:
 			return requests.post(url, json=data, headers=headers, stream=True)
 
 		@staticmethod
+		def new_chat(id, message_id, firstMessage, timestamp) -> str:
+			"""创建新对话"""
+			user = utils.request.user()
+			userToken = user.get("token")
+			headers = {
+				**cfg.headers,
+				"Accept": "application/json",
+				"Accept-Language": "zh-CN",
+				"Content-Type": "application/json",
+				"Authorization": f"Bearer {userToken}",
+				"DNT": "1",
+				"Origin": f"{cfg.source.protocol}//{cfg.source.host}",
+				"Referer": f"{cfg.source.protocol}//{cfg.source.host}/",
+				"Sec-Fetch-Dest": "empty",
+				"Sec-Fetch-Mode": "cors",
+				"Sec-Fetch-Site": "same-origin",
+			}
+			# 写死的请求数据，来自你提供的 curl 请求
+			fixed_chat_data = {
+				"chat": {
+					"id": id,
+					"title": "新聊天",
+					"models": ["GLM-4-6-API-V1"],
+					"params": {},
+					"history": {
+						"messages": {
+							message_id: {
+								"id": message_id,
+								"parentId": None,
+								"childrenIds": [],
+								"role": "user",
+								"content": firstMessage,
+								"timestamp": timestamp,
+								"models": ["GLM-4-6-API-V1"]
+							}
+						},
+						"currentId": message_id
+					},
+					"tags": [],
+					"flags": [],
+					"features": [
+						{"type": "mcp", "server": "vibe-coding", "status": "hidden"},
+						{"type": "mcp", "server": "ppt-maker", "status": "hidden"},
+						{"type": "mcp", "server": "image-search", "status": "hidden"},
+						{"type": "mcp", "server": "deep-research", "status": "hidden"},
+						{"type": "tool_selector", "server": "tool_selector", "status": "hidden"},
+						{"type": "mcp", "server": "advanced-search", "status": "hidden"}
+					],
+					"mcp_servers": [],
+					"enable_thinking": True,
+					"auto_web_search": False,
+					"timestamp": timestamp
+				}
+			}
+
+			# 使用写死的数据
+			actual_data = fixed_chat_data
+
+			log.debug("创建新对话请求:")
+			log.debug("  headers: %s", json.dumps(headers))
+			log.debug("  data: %s", json.dumps(actual_data))
+
+			url = f"{cfg.source.protocol}//{cfg.source.host}/api/v1/chats/new"
+			response = requests.post(url, json=actual_data, headers=headers)
+			return str(response.json()["id"])
+		
+		@staticmethod
 		def image(data_url, chat_id):
 			if cfg.api.anon or not data_url.startswith("data:"):
 				return None
@@ -776,13 +843,13 @@ def OpenAI_Compatible():
 		odata = request.get_json(force=True, silent=True) or {}
 		# log.debug("收到请求:")
 		# log.debug("  data: %s", json.dumps(odata))
-		id = utils.request.id("chat")
+		chat_id = utils.request.new_chat(utils.request.id(), utils.request.id(), "你好", int(datetime.now().timestamp() * 1000))
 		stream = odata.get("stream", False)
 		include_usage = odata.get("stream_options", {}).get("include_usage", True)
 
 		data = {
 			**utils.request.format(odata, "OpenAI"),
-			"chat_id": id,
+			"chat_id": chat_id,
 			"id": utils.request.id(),
 		}
 		model = data.get("model", cfg.model.default)
@@ -797,7 +864,7 @@ def OpenAI_Compatible():
 				for c in ([m["content"]] if isinstance(m.get("content"), str) else (m.get("content") or []))
 			))
 
-		response = utils.request.chat(data, id)
+		response = utils.request.chat(data, chat_id)
 		if response.status_code != 200:
 			return utils.request.response(jsonify({
 				"error": f"{response.status_code}: {response.text}",
@@ -1225,4 +1292,5 @@ if __name__ == "__main__":
 		from gevent import pywsgi
 
 		pywsgi.WSGIServer(('0.0.0.0', cfg.api.port), app).serve_forever()
+
 
