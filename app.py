@@ -131,7 +131,7 @@ class utils:
 			return requests.post(url, json=data, headers=headers, stream=True)
 
 		@staticmethod
-		def new_chat(id, message_id, firstMessage, timestamp) -> str:
+		def new_chat(id, message_id, model, firstMessage, timestamp) -> str:
 			"""创建新对话"""
 			user = utils.request.user()
 			userToken = user.get("token")
@@ -153,7 +153,7 @@ class utils:
 				"chat": {
 					"id": id,
 					"title": "新聊天",
-					"models": ["GLM-4-6-API-V1"],
+					"models": [model],
 					"params": {},
 					"history": {
 						"messages": {
@@ -737,7 +737,8 @@ class utils:
 				phase = "tool_call"
 				content = re.sub(r"null, \"display_result\": \"\".*</glm_block>", "\"}", content)
 
-			if phase == "thinking" or (phase == "answer" and "summary>" in content):
+			is_details_block = ("summary>" in content) or ("<details" in content) or ("</details" in content)
+			if phase == "thinking" or (phase == "answer" and is_details_block):
 				content = re.sub(r"(?s)<details[^>]*?>.*?</details>", "", content)
 				content = content.replace("</thinking>", "").replace("<Full>", "").replace("</Full>", "")
 
@@ -843,7 +844,7 @@ def OpenAI_Compatible():
 		odata = request.get_json(force=True, silent=True) or {}
 		# log.debug("收到请求:")
 		# log.debug("  data: %s", json.dumps(odata))
-		chat_id = utils.request.new_chat(utils.request.id(), utils.request.id(), "你好", int(datetime.now().timestamp() * 1000))
+		chat_id = utils.request.new_chat(utils.request.id(), utils.request.id(), odata.get("model", cfg.model.default), "你好", int(datetime.now().timestamp() * 1000))
 		stream = odata.get("stream", False)
 		include_usage = odata.get("stream_options", {}).get("include_usage", True)
 
